@@ -17,8 +17,6 @@ package otelsql
 import (
 	"context"
 	"database/sql/driver"
-
-	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -44,16 +42,6 @@ func newStmt(stmt driver.Stmt, cfg config, query string) *otStmt {
 }
 
 func (s *otStmt) ExecContext(ctx context.Context, args []driver.NamedValue) (result driver.Result, err error) {
-	method := MethodStmtExec
-	onDefer := recordMetric(ctx, s.cfg.Instruments, s.cfg.Attributes, method)
-	defer func() {
-		onDefer(err)
-	}()
-
-	var span trace.Span
-	ctx, span = createSpan(ctx, s.cfg, method, true, s.query, args)
-	defer span.End()
-	defer recordSpanErrorDeferred(span, s.cfg.SpanOptions, &err)
 
 	if execer, ok := s.Stmt.(driver.StmtExecContext); ok {
 		return execer.ExecContext(ctx, args)
@@ -75,18 +63,9 @@ func (s *otStmt) ExecContext(ctx context.Context, args []driver.NamedValue) (res
 }
 
 func (s *otStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (rows driver.Rows, err error) {
-	method := MethodStmtQuery
-	onDefer := recordMetric(ctx, s.cfg.Instruments, s.cfg.Attributes, method)
-	defer func() {
-		onDefer(err)
-	}()
-
-	queryCtx, span := createSpan(ctx, s.cfg, method, true, s.query, args)
-	defer span.End()
-	defer recordSpanErrorDeferred(span, s.cfg.SpanOptions, &err)
 
 	if query, ok := s.Stmt.(driver.StmtQueryContext); ok {
-		if rows, err = query.QueryContext(queryCtx, args); err != nil {
+		if rows, err = query.QueryContext(ctx, args); err != nil {
 			return nil, err
 		}
 	} else {

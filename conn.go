@@ -144,18 +144,6 @@ func (c *otConn) QueryContext(ctx context.Context, query string, args []driver.N
 }
 
 func (c *otConn) PrepareContext(ctx context.Context, query string) (stmt driver.Stmt, err error) {
-	method := MethodConnPrepare
-	onDefer := recordMetric(ctx, c.cfg.Instruments, c.cfg.Attributes, method)
-	defer func() {
-		onDefer(err)
-	}()
-
-	var span trace.Span
-	if !c.cfg.SpanOptions.OmitConnPrepare {
-		ctx, span = createSpan(ctx, c.cfg, method, true, query, nil)
-		defer span.End()
-		defer recordSpanErrorDeferred(span, c.cfg.SpanOptions, &err)
-	}
 
 	commentedQuery := c.cfg.SQLCommenter.withComment(ctx, query)
 
@@ -180,18 +168,8 @@ func (c *otConn) PrepareContext(ctx context.Context, query string) (stmt driver.
 }
 
 func (c *otConn) BeginTx(ctx context.Context, opts driver.TxOptions) (tx driver.Tx, err error) {
-	method := MethodConnBeginTx
-	onDefer := recordMetric(ctx, c.cfg.Instruments, c.cfg.Attributes, method)
-	defer func() {
-		onDefer(err)
-	}()
-
-	beginTxCtx, span := createSpan(ctx, c.cfg, method, false, "", nil)
-	defer span.End()
-	defer recordSpanErrorDeferred(span, c.cfg.SpanOptions, &err)
-
 	if connBeginTx, ok := c.Conn.(driver.ConnBeginTx); ok {
-		if tx, err = connBeginTx.BeginTx(beginTxCtx, opts); err != nil {
+		if tx, err = connBeginTx.BeginTx(ctx, opts); err != nil {
 			return nil, err
 		}
 	} else {
@@ -231,21 +209,8 @@ func (c *otConn) ResetSession(ctx context.Context) (err error) {
 		return nil
 	}
 
-	method := MethodConnResetSession
-	onDefer := recordMetric(ctx, c.cfg.Instruments, c.cfg.Attributes, method)
-	defer func() {
-		onDefer(err)
-	}()
-
-	var span trace.Span
-	if !c.cfg.SpanOptions.OmitConnResetSession {
-		ctx, span = createSpan(ctx, c.cfg, method, false, "", nil)
-		defer span.End()
-	}
-
 	err = sessionResetter.ResetSession(ctx)
 	if err != nil {
-		recordSpanError(span, c.cfg.SpanOptions, err)
 		return err
 	}
 	return nil

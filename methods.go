@@ -25,13 +25,6 @@ const (
 	MethodConnPing         Method = "sql.conn.ping"
 	MethodConnExec         Method = "sql.conn.exec"
 	MethodConnQuery        Method = "sql.conn.query"
-	MethodConnPrepare      Method = "sql.conn.prepare"
-	MethodConnBeginTx      Method = "sql.conn.begin_tx"
-	MethodConnResetSession Method = "sql.conn.reset_session"
-	MethodTxCommit         Method = "sql.tx.commit"
-	MethodTxRollback       Method = "sql.tx.rollback"
-	MethodStmtExec         Method = "sql.stmt.exec"
-	MethodStmtQuery        Method = "sql.stmt.query"
 	MethodRows             Method = "sql.rows"
 )
 
