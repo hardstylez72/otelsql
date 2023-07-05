@@ -1,4 +1,4 @@
-module github.com/XSAM/otelsql
+module github.com/hardstylez72/otelsql
 
 go 1.19
 
